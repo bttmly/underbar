@@ -4,7 +4,7 @@ var _ = {};
 
 (function() {
 
-  function coerceArray( obj ) {
+  var coerceArray = function( obj ) {
     return Array.prototype.slice.call( obj )
   }
 
@@ -68,9 +68,8 @@ var _ = {};
   // iterator function over each item in the input collection.
   _.each = function(collection, iterator) {
     var list = Array.isArray( collection ) ? collection.map(function(e, i) { return i }) : Object.keys( collection );
-    var item;
-    for ( var i = 0; item = collection[ list[ i ] ]; i++ ) {
-      iterator( item, list[ i ], collection );
+    for ( var i = 0; i < list.length ; i++ ) {
+      iterator( collection[list[i]], list[ i ], collection );
     }
   };
 
@@ -194,11 +193,11 @@ var _ = {};
     // TIP: Many iteration problems can be most easily expressed in
     // terms of reduce(). Here's a freebie to demonstrate!
     return _.reduce(collection, function(wasFound, item) {
-      if (wasFound) {
+      if ( wasFound ) {
         return true;
       }
       return item === target;
-    }, false);
+    }, false );
   };
 
 
@@ -211,36 +210,31 @@ var _ = {};
       return true;
     }
 
-    return _.reduce( collection, function( acc, item ) {
+    return _.reduce( collection, function( acc, item ){
       if ( !acc ) {
-        console.log( failed )
-        return acc;
+        return false;
+      } else {
+        return !!iterator( item );
       }
-      return !!iterator( item );
-    }, true);
+    }, true )
 
   };
 
   // Determine whether any of the elements pass a truth test. If no iterator is
   // provided, provide a default one
   _.some = function(collection, iterator) {
-
     var iterator = iterator || _.identity;
-    var list = _.listKeys( collection );
-
-    if ( !list.length ) {
+    if ( !_.listKeys( collection ).length ) {
       return false;
     }
 
-    for ( var i = 0; i < list.length; i++ ) {
-      if ( iterator( collection[list[i]], list[i], collection ) ) {
+    return _.reduce( collection, function( acc, item ) {
+      if ( acc ) {
         return true;
+      } else {
+        return !!iterator( item );
       }
-      return false;
-    }
-
-
-    // TIP: There's a very clever way to re-use every() here.
+    }, false);
   };
 
 
@@ -328,9 +322,9 @@ var _ = {};
     var memos = {};
     return function() {
       if ( !memos[arguments[0]] ) {
-        memos[arguments[0]] = func.apply( this, arguments )
+        memos[arguments[0]] = func.apply( this, arguments );
       }
-      return memos[arguments[0]]
+      return memos[arguments[0]];
     }
 
   };
@@ -346,8 +340,8 @@ var _ = {};
     var args = coerceArray( arguments ).slice( 2 );
     var self = this;
 
-    setTimeout( function( t ) {
-      func.apply( t, args );
+    setTimeout( function() {
+      func.apply( this, args );
     }.bind( this ), wait ); 
 
   };
