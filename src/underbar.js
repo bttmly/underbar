@@ -450,6 +450,22 @@ var _ = {};
   // Takes an arbitrary number of arrays and produces an array that contains
   // every item shared between all the passed-in arrays.
   _.intersection = function() {
+    var ret = [];
+    var args = coerceArray( arguments );
+    var first = args.shift();
+
+    _.each( first, function( item ) {
+      var present = true;
+      _.each( args, function( arg ) {
+        if ( arg.indexOf( item ) < 0 ) { present = false; }
+      });
+      if ( present ) {
+        ret.push( item );
+      }
+    });
+
+    return ret;
+
   };
 
   // Take the difference between one array and a number of other arrays.
