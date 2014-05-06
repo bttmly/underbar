@@ -499,6 +499,43 @@ var _ = {};
   //
   // See the Underbar readme for details.
   _.throttle = function(func, wait) {
+
+    var scheduled = false;
+    var lastCalled = 0;
+    var lastReturn;
+
+    return function() {
+      var context = this;
+      var args = arguments;
+      var sinceLast = Date.now() - lastCalled;
+      
+      if ( sinceLast < wait ) {
+        
+        // if we haven't waited long enough
+        // set scheduled to true,
+        // set a future time to call func,
+        // and also to reset scheduled to false
+        if ( !scheduled ) {
+          scheduled = true;
+          setTimeout( function() {
+            lastCalled = Date.now();
+            lastReturn = func.apply( context, args );
+            scheduled = false;
+          }, wait - sinceLast )
+        }
+
+        // if sinceLast < wait and already scheduled, do nothing.
+
+      } else {
+
+        lastCalled = Date.now();
+        lastReturn = func.apply( this, arguments );
+      
+      }
+
+      return lastReturn;
+    }
+
   };
 
 }).call(this);
