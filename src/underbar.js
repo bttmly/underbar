@@ -471,6 +471,21 @@ var _ = {};
   // Take the difference between one array and a number of other arrays.
   // Only the elements present in just the first array will remain.
   _.difference = function(array) {
+    var ret = [];
+    var otherArrs = Array.prototype.slice.call( arguments, 1 );
+
+    _.each( array, function( item ) {
+      var present = false;
+      _.each( otherArrs, function( arr ) {
+        if ( arr.indexOf( item ) !== -1 ) { present = true; }
+      })
+      if ( !present ) {
+        ret.push( item );
+      }
+
+    });
+
+    return ret;
   };
 
 
