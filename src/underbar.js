@@ -4,9 +4,35 @@ var _ = {};
 
 (function() {
 
+  var size = function( collection ){
+    return ( Array.isArray( collection ) ? collection : Object.keys( collection ) ).length;
+  };
+
+  var accessors = function( collection ){
+    var results = [];
+    if ( Array.isArray( collection ) ) {
+      for ( var i = 0; i < collection.length; i++ ) {
+        if ( collection[i] !== undefined ) {
+          results.push( i );
+        }
+      }
+    } else {
+      if ( Object.keys ) {
+        results = Object.keys( collection );
+      } else {
+        for ( var prop in collection ) {
+          if ( collection.hasOwnProperty( prop ) ) {
+            results.push( prop );
+          }
+        }
+      }
+    }
+    return results;
+  };
+
   var coerceArray = function( obj ) {
     return Array.prototype.slice.call( obj )
-  }
+  };
 
   _.listKeys = function ( collection ) {
     return Array.isArray( collection ) ? collection.map(function(e, i) { if ( e ) return i }) : Object.keys( collection );
@@ -67,9 +93,14 @@ var _ = {};
   // Note: _.each does not have a return value, but rather simply runs the
   // iterator function over each item in the input collection.
   _.each = function(collection, iterator) {
-    var list = Array.isArray( collection ) ? collection.map(function(e, i) { return i }) : Object.keys( collection );
-    for ( var i = 0; i < list.length ; i++ ) {
-      iterator( collection[list[i]], list[ i ], collection );
+    if (Array.isArray(collection)) {
+      for (var i = 0; i < collection.length; i++) {
+        iterator(collection[i], i, collection);
+      }
+    } else {
+      for (var key in collection){
+        iterator(collection[key], key, collection)
+      }
     }
   };
 
@@ -145,7 +176,7 @@ var _ = {};
     // TIP: map is really handy when you want to transform an array of
     // values into a new array of values. _.pluck() is solved for you
     // as an example of this.
-    return _.map(collection, function(item){
+    return _.map( collection, function( item ){
       return item[key];
     });
   };
@@ -179,20 +210,28 @@ var _ = {};
   //     return total + number;
   //   }, 0); // should be 6
   _.reduce = function(collection, iterator, accumulator) {
+    var offset;
 
-    _.each( collection, function( item ) {
+    if (accumulator == null) {
+      accumulator = collection[0];
+      offset = true;
+    }
+
+    _.each( collection, function( item, i ) {
+      if (offset && i === 1) {
+        return;
+      }
       accumulator = iterator( accumulator, item );
     });
-
-    return accumulator
-
+    
+    return accumulator;
   };
 
   // Determine if the array or object contains a given value (using `===`).
   _.contains = function(collection, target) {
     // TIP: Many iteration problems can be most easily expressed in
     // terms of reduce(). Here's a freebie to demonstrate!
-    return _.reduce(collection, function(wasFound, item) {
+    return _.reduce(collection, function( wasFound, item ) {
       if ( wasFound ) {
         return true;
       }
@@ -206,7 +245,7 @@ var _ = {};
     
     var iterator = iterator || _.identity;
 
-    if ( !_.listKeys( collection ).length ) {
+    if ( !size( collection ) ) {
       return true;
     }
 
@@ -224,7 +263,7 @@ var _ = {};
   // provided, provide a default one
   _.some = function(collection, iterator) {
     var iterator = iterator || _.identity;
-    if ( !_.listKeys( collection ).length ) {
+    if ( !size( collection ) ) {
       return false;
     }
 
@@ -259,7 +298,8 @@ var _ = {};
   _.extend = function(obj) {
     var args = coerceArray( arguments ).slice( 1 );
     args.forEach( function( o ){
-      for ( var key in o ) {
+      var key;
+      for ( key in o ) {
         obj[key] = o[key];
       }
     });
@@ -301,7 +341,7 @@ var _ = {};
     // TIP: We'll return a new function that delegates to the old one, but only
     // if it hasn't been called before.
     return function() {
-      if (!alreadyCalled) {
+      if ( !alreadyCalled ) {
         // TIP: .apply(this, arguments) is the standard way to pass on all of the
         // infromation from one function call to another.
         result = func.apply(this, arguments);
@@ -320,13 +360,20 @@ var _ = {};
   // instead if possible.
   _.memoize = function(func) {
     var memos = {};
-    return function() {
-      if ( !memos[arguments[0]] ) {
-        memos[arguments[0]] = func.apply( this, arguments );
+    return function( str ) {
+      // var str = Array.prototype.slice.call( arguments ).toString()
+      if ( memos[str] === undefined ) {
+        memos[str] = func.apply( this, arguments );
       }
-      return memos[arguments[0]];
+      return memos[str];
     }
 
+  };
+
+  _.wrap = function( original, wrapper ) {
+    return function() {
+      return wrapper( original );
+    }
   };
 
   // Delays a function for the given number of milliseconds, and then calls
@@ -336,16 +383,12 @@ var _ = {};
   // parameter. For example _.delay(someFunction, 500, 'a', 'b') will
   // call someFunction('a', 'b') after 500ms
   _.delay = function(func, wait) {
-
     var args = coerceArray( arguments ).slice( 2 );
-    var self = this;
-
     setTimeout( function() {
       func.apply( this, args );
-    }.bind( this ), wait ); 
+    }.bind( this ), wait );
 
   };
-
 
   /**
    * ADVANCED COLLECTION OPERATIONS
@@ -477,7 +520,9 @@ var _ = {};
     _.each( array, function( item ) {
       var present = false;
       _.each( otherArrs, function( arr ) {
-        if ( arr.indexOf( item ) !== -1 ) { present = true; }
+        if ( arr.indexOf( item ) !== -1 ) {
+         present = true; 
+        }
       })
       if ( !present ) {
         ret.push( item );
@@ -506,7 +551,7 @@ var _ = {};
 
     return function() {
       var context = this;
-      var args = arguments;
+      var args = arguments; 
       var sinceLast = Date.now() - lastCalled;
       
       if ( sinceLast < wait ) {
@@ -536,6 +581,28 @@ var _ = {};
       return lastReturn;
     }
 
+  };
+
+  _.compose = function() {
+    var fnArgs = Array.prototype.slice.call( arguments ).reverse();
+    return function(){
+      var result;
+      var passedArgs = Array.prototype.slice.call( arguments )
+      _.each( fnArgs, function( fn, i ) {
+        var applyWith = i === 0 ? passedArgs : [result];
+        result = fn.apply( this, applyWith );
+      });
+      return result;
+    }
+  };
+
+  _.partial = function( fn ) {
+    var args = Array.prototype.slice.call( arguments, 1 );
+    return function() {
+      var clone = args.slice();
+      [].push.apply( clone, arguments );
+      return fn.apply( this, clone );
+    }
   };
 
 }).call(this);
